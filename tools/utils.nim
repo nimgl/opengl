@@ -126,7 +126,7 @@ type
     length: GLsizei,
     message: ptr GLchar,
     userParam: pointer) {.stdcall.}
-  GLVULKANPROCNV* = proc(): void {.cdecl.}
+  GLVULKANPROCNV* = proc(): void {.stdcall.}
 
 when defined(macosx):
   type
@@ -147,7 +147,7 @@ proc hash*(x: GLenum): int = x.int
 
 const glInit* = """
 proc glInit*(): bool =
-  glGetString = cast[proc(name: GLenum): ptr GLubyte {.cdecl, stdcall.}](glGetProc("glGetString"))
+  glGetString = cast[proc(name: GLenum): ptr GLubyte {.stdcall.}](glGetProc("glGetString"))
   if glGetString == nil:
     return false
 

@@ -181,7 +181,7 @@ proc addProcs(output: var string) =
       if not output.endsWith("("):
         output.add(", ")
       output.add("{arg.name}: {arg.argType}".fmt)
-    output.add("): {glProc.rVal} {{.cdecl, stdcall.}}\n".fmt)
+    output.add("): {glProc.rVal} {{.stdcall.}}\n".fmt)
 
 proc addEnums(output: var string) =
   output.add("\n# Enums\n")
@@ -203,7 +203,7 @@ proc addLoader(output: var string, number: string, features: seq[GLProc]) =
       if not output.endsWith("("):
         output.add(", ")
       output.add("{arg.name}: {arg.argType}".fmt)
-    output.add("): {glProc.rVal} {{.cdecl, stdcall.}}](glGetProc(\"{glProc.name}\"))\n".fmt)
+    output.add("): {glProc.rVal} {{.stdcall.}}](glGetProc(\"{glProc.name}\"))\n".fmt)
 
 proc addExtensions(output: var string, node: XmlNode) =
   output.add("\n# Extensions\n")
@@ -233,7 +233,7 @@ proc addExtensions(output: var string, node: XmlNode) =
           if not output.endsWith("("):
             output.add(", ")
           output.add("{arg.name}: {arg.argType}".fmt)
-        output.add("): {glProc.rVal} {{.cdecl, stdcall.}}](glGetProc(\"{glProc.name}\"))\n".fmt)
+        output.add("): {glProc.rVal} {{.stdcall.}}](glGetProc(\"{glProc.name}\"))\n".fmt)
 
 proc main() =
   if not os.fileExists("gl.xml"):
