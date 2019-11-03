@@ -16,11 +16,13 @@ const srcHeader* = """
 ## NOTE: This bindings only support modern OpenGL (3.2 >=)
 ## so fixed pipelines are not supported.
 
-import dynlib, strutils
+import strutils
 
 var glGetProc: proc(procName: cstring): pointer {.cdecl.}
 
 when not defined(glCustomLoader):
+  import dynlib
+
   # Thanks to ephja for this loading system
   when defined(windows):
     const glDLL = "opengl32.dll"

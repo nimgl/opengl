@@ -60,6 +60,7 @@ proc translateType(cmd: string): string =
   result = result.replace("ptr struct _cl_event", "ClEvent")
 
 proc genEnums(node: XmlNode) =
+  echo "Generating Enums..."
   for enums in node.findAll("enums"):
     for e in enums.findAll("enum"):
       var name = e.attr("name")
@@ -89,6 +90,7 @@ proc genEnums(node: XmlNode) =
       glEnums.add(newEnum)
 
 proc genProcs(node: XmlNode) =
+  echo "Generating Procedures..."
   for commands in node.findAll("commands"):
     for command in commands.findAll("command"):
       var glProc: GLProc
@@ -120,6 +122,7 @@ proc genProcs(node: XmlNode) =
       glProcs.add(glProc)
 
 proc removeCompatibility(node: XmlNode) =
+  echo "Removing Compatibility Mode..."
   for feature in node.findAll("feature"):
     let number = feature.attr("number").parseFloat()
     if number != 3.2f:
@@ -136,6 +139,7 @@ proc removeCompatibility(node: XmlNode) =
             glEnums.del(i)
 
 proc genFeatures(node: XmlNode) =
+  echo "Generating Features..."
   for feature in node.findAll("feature"):
     if feature.attr("api") != "gl":
       continue
@@ -173,6 +177,7 @@ proc genFeatures(node: XmlNode) =
             break
 
 proc addProcs(output: var string) =
+  echo "Adding Procedures..."
   output.add("\n# Procs\n")
   output.add("var\n")
   for glProc in glProcs:
@@ -184,6 +189,7 @@ proc addProcs(output: var string) =
     output.add("): {glProc.rVal} {{.stdcall.}}\n".fmt)
 
 proc addEnums(output: var string) =
+  echo "Adding Enums..."
   output.add("\n# Enums\n")
   output.add("const\n")
 
@@ -195,6 +201,7 @@ proc addEnums(output: var string) =
       output.add("\n")
 
 proc addLoader(output: var string, number: string, features: seq[GLProc]) =
+  echo "Adding Loader for {number}...".fmt
   output.add("\n# OpenGL {number} loader\n".fmt)
   output.add("proc glLoad{number}*() =\n".fmt)
   for glProc in features:
@@ -206,6 +213,7 @@ proc addLoader(output: var string, number: string, features: seq[GLProc]) =
     output.add("): {glProc.rVal} {{.stdcall.}}](glGetProc(\"{glProc.name}\"))\n".fmt)
 
 proc addExtensions(output: var string, node: XmlNode) =
+  echo "Adding Extensions..."
   output.add("\n# Extensions\n")
   for extensions in node.findAll("extensions"):
     for extension in extensions.findAll("extension"):
