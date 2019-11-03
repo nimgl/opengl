@@ -1,6 +1,6 @@
 # Package
 
-version     = "0.1.0"
+version     = "1.0.0"
 author      = "Leonardo Mariscal"
 description = "OpenGL bindings for Nim"
 license     = "MIT"
