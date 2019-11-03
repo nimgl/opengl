@@ -164,6 +164,8 @@ proc genFeatures(node: XmlNode) =
       of 4.6: current = gl4_6.addr
 
     for require in feature.findAll("require"):
+      if require.attr("profile") == "compatibility":
+        continue
       for command in require.findAll("command"):
         for glProc in glProcs:
           if glProc.name == command.attr("name"):
