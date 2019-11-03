@@ -207,7 +207,8 @@ proc addExtensions(output: var string, node: XmlNode) =
   output.add("\n# Extensions\n")
   for extensions in node.findAll("extensions"):
     for extension in extensions.findAll("extension"):
-      if extension.attr("supported") != "gl":
+      let supported = extension.attr("supported")
+      if supported != "gl" and not supported.contains("gl|"):
         continue
 
       var commands: seq[GLProc]
