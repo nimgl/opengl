@@ -24,7 +24,7 @@ elif defined(macosx):
 else:
   const glDLL = "libGL.so.1"
 
-import dynlib
+import dynlib, strutils
 
 let glHandle = loadLib(glDLL)
 if isNil(glHandle): quit("could not load: " & gldll)
@@ -61,7 +61,6 @@ proc glGetProc(procName: cstring): pointer =
 """
 
 const srcTypes* = """
-# Thanks to ephja again for the types
 type
   GLenum* = distinct uint32
   GLboolean* = bool
@@ -95,42 +94,6 @@ type
   GLsizeiptr* = int
   GLsync* = distinct pointer
   GLuint64* = uint64
-  GLvectorub2* = array[0..1, GLubyte]
-  GLvectori2* = array[0..1, GLint]
-  GLvectorf2* = array[0..1, GLfloat]
-  GLvectord2* = array[0..1, GLdouble]
-  GLvectorp2* = array[0..1, pointer]
-  GLvectorb3* = array[0..2, GLbyte]
-  GLvectorub3* = array[0..2, GLubyte]
-  GLvectori3* = array[0..2, GLint]
-  GLvectorui3* = array[0..2, GLuint]
-  GLvectorf3* = array[0..2, GLfloat]
-  GLvectord3* = array[0..2, GLdouble]
-  GLvectorp3* = array[0..2, pointer]
-  GLvectors3* = array[0..2, GLshort]
-  GLvectorus3* = array[0..2, GLushort]
-  GLvectorb4* = array[0..3, GLbyte]
-  GLvectorub4* = array[0..3, GLubyte]
-  GLvectori4* = array[0..3, GLint]
-  GLvectorui4* = array[0..3, GLuint]
-  GLvectorf4* = array[0..3, GLfloat]
-  GLvectord4* = array[0..3, GLdouble]
-  GLvectorp4* = array[0..3, pointer]
-  GLvectors4* = array[0..3, GLshort]
-  GLvectorus4* = array[0..3, GLshort]
-  GLarray4f* = GLvectorf4
-  GLarrayf3* = GLvectorf3
-  GLarrayd3* = GLvectord3
-  GLarrayi4* = GLvectori4
-  GLarrayp4* = GLvectorp4
-  GLmatrixub3* = array[0..2, array[0..2, GLubyte]]
-  GLmatrixi3* = array[0..2, array[0..2, GLint]]
-  GLmatrixf3* = array[0..2, array[0..2, GLfloat]]
-  GLmatrixd3* = array[0..2, array[0..2, GLdouble]]
-  GLmatrixub4* = array[0..3, array[0..3, GLubyte]]
-  GLmatrixi4* = array[0..3, array[0..3, GLint]]
-  GLmatrixf4* = array[0..3, array[0..3, GLfloat]]
-  GLmatrixd4* = array[0..3, array[0..3, GLdouble]]
   ClContext* = distinct pointer
   ClEvent* = distinct pointer
   GLdebugProc* = proc (
@@ -163,6 +126,7 @@ type
     length: GLsizei,
     message: ptr GLchar,
     userParam: pointer) {.stdcall.}
+  GLVULKANPROCNV* = proc(): void {.cdecl.}
 
 when defined(macosx):
   type
@@ -171,16 +135,67 @@ else:
   type
     GLhandleArb = uint32
 
+var
+  glVersionMajor*: int
+  glVersionMinor*: int
+
 proc `==`*(a, b: GLenum): bool {.borrow.}
 proc `==`*(a, b: GLbitfield): bool {.borrow.}
 proc `or`*(a, b: GLbitfield): GLbitfield {.borrow.}
 proc hash*(x: GLenum): int = x.int
 """
 
-let keywords = ["addr", "and", "as", "asm", "bind", "block", "break", "case", "cast", "concept",
-                "const", "continue", "converter", "defer", "discard", "distinct", "div", "do",
-                "elif", "else", "end", "enum", "except", "export", "finally", "for", "from", "func",
-                "if", "import", "in", "include", "interface", "is", "isnot", "iterator", "let",
-                "macro", "method", "mixin", "mod", "nil", "not", "notin", "object", "of", "or",
-                "out", "proc", "ptr", "raise", "ref", "return", "shl", "shr", "static", "template",
-                "try", "tuple", "type", "using", "var", "when", "while", "xor", "yield"]
+const glInit* = """
+proc glInit*(): bool =
+  glGetString = cast[proc(name: GLenum): ptr GLubyte {.cdecl, stdcall.}](glGetProc("glGetString"))
+  if glGetString == nil:
+    return false
+
+  let glVersion = cast[cstring](glGetString(GL_VERSION))
+  if glVersion.isNil:
+    return false
+
+  let prefixes = ["OpenGL ES-CM ", "OpenGL ES-CL ", "OpenGL ES "]
+  var version: string = $glVersion
+  for prefix in prefixes:
+    if version.startsWith(prefix):
+      version = version.replace(prefix)
+      break
+
+  let major = ord(glVersion[0]) - ord('0')
+  let minor = ord(glVersion[2]) - ord('0')
+
+  glVersionMajor = major
+  glVersionMinor = minor
+
+  if (major == 1 and minor >= 0) or major > 1: glLoad1_0()
+  if (major == 1 and minor >= 1) or major > 1: glLoad1_1()
+  if (major == 1 and minor >= 2) or major > 1: glLoad1_2()
+  if (major == 1 and minor >= 3) or major > 1: glLoad1_3()
+  if (major == 1 and minor >= 4) or major > 1: glLoad1_4()
+  if (major == 1 and minor >= 5) or major > 1: glLoad1_5()
+  if (major == 2 and minor >= 0) or major > 2: glLoad2_0()
+  if (major == 2 and minor >= 1) or major > 2: glLoad2_1()
+  if (major == 3 and minor >= 0) or major > 3: glLoad3_0()
+  if (major == 3 and minor >= 1) or major > 3: glLoad3_1()
+  if (major == 3 and minor >= 2) or major > 3: glLoad3_2()
+  if (major == 3 and minor >= 3) or major > 3: glLoad3_3()
+  if (major == 4 and minor >= 0) or major > 4: glLoad4_0()
+  if (major == 4 and minor >= 1) or major > 4: glLoad4_1()
+  if (major == 4 and minor >= 2) or major > 4: glLoad4_2()
+  if (major == 4 and minor >= 3) or major > 4: glLoad4_3()
+  if (major == 4 and minor >= 4) or major > 4: glLoad4_4()
+  if (major == 4 and minor >= 5) or major > 4: glLoad4_5()
+  if (major == 4 and minor >= 6) or major > 4: glLoad4_6()
+  return true
+"""
+
+let keywords* = ["addr", "and", "as", "asm", "bind", "block", "break", "case", "cast", "concept",
+                 "const", "continue", "converter", "defer", "discard", "distinct", "div", "do",
+                 "elif", "else", "end", "enum", "except", "export", "finally", "for", "from", "func",
+                 "if", "import", "in", "include", "interface", "is", "isnot", "iterator", "let",
+                 "macro", "method", "mixin", "mod", "nil", "not", "notin", "object", "of", "or",
+                 "out", "proc", "ptr", "raise", "ref", "return", "shl", "shr", "static", "template",
+                 "try", "tuple", "type", "using", "var", "when", "while", "xor", "yield"]
+
+let renameConstants* = ["GL_BYTE", "GL_SHORT", "GL_INT", "GL_FLOAT", "GL_DOUBLE", "GL_FIXED"]

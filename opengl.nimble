@@ -12,7 +12,7 @@ skipDirs    = @["tests"]
 requires "nim >= 1.0.0"
 
 task gen, "Generate bindings":
-  exec("nim c -r tools/generator.nim")
+  exec("nim c -d:ssl -r tools/generator.nim")
 
 task test, "Build an test bindings":
   requires "nimgl@#1.0" # Please https://github.com/nim-lang/nimble/issues/482
