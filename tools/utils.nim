@@ -20,7 +20,7 @@ import strutils
 
 var glGetProc: proc(procName: cstring): pointer {.cdecl.}
 
-when not defined(glCustomLoader):
+when not defined(glCustomLoader) and not defined(emscripten):
   import dynlib
 
   # Thanks to ephja for this loading system
