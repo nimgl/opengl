@@ -5,6 +5,17 @@ proc keyProc(window: GLFWWindow, key: int32, scancode: int32,
   if key == GLFWKey.ESCAPE and action == GLFWPress:
     window.setWindowShouldClose(true)
 
+when defined(emscripten):
+  proc emscripten_set_main_loop(f: proc() {.cdecl.}, a: cint, b: bool) {.importc.}
+
+var window: GLFWWindow
+
+proc tick() {.cdecl.} =
+  glfwPollEvents()
+  glClearColor(0.68f, 1f, 0.34f, 1f)
+  glClear(GL_COLOR_BUFFER_BIT)
+  window.swapBuffers()
+
 proc main() =
   assert glfwInit()
 
@@ -14,22 +25,22 @@ proc main() =
   glfwWindowHint(GLFWOpenglProfile, GLFW_OPENGL_CORE_PROFILE)
   glfwWindowHint(GLFWResizable, GLFW_FALSE)
 
-  let w: GLFWWindow = glfwCreateWindow(800, 600, "NimGL")
-  if w == nil:
+  window = glfwCreateWindow(800, 600, "NimGL")
+  if window == nil:
     quit(-1)
 
-  discard w.setKeyCallback(keyProc)
-  w.makeContextCurrent()
+  discard window.setKeyCallback(keyProc)
+  window.makeContextCurrent()
 
   assert glInit()
 
-  while not w.windowShouldClose:
-    glfwPollEvents()
-    glClearColor(0.68f, 1f, 0.34f, 1f)
-    glClear(GL_COLOR_BUFFER_BIT)
-    w.swapBuffers()
+  when defined(emscripten):
+    emscripten_set_main_loop(tick, 0, true)
+  else:
+    while not window.windowShouldClose:
+      tick()
 
-  w.destroyWindow()
+  window.destroyWindow()
   glfwTerminate()
 
 main()
