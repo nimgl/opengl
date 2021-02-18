@@ -1,6 +1,6 @@
 # Written by Leonardo Mariscal <leo@ldmd.mx>, 2019
 
-import ./utils, httpClient, strutils, xmlparser, xmltree, os, streams, strformat
+import ./utils, httpClient, strutils, xmlparser, xmltree, os, streams, strformat, sets
 
 type
   GLEnum = object
@@ -176,9 +176,23 @@ proc genFeatures(node: XmlNode) =
             current[].add(glProc)
             break
 
-proc addProcs(output: var string) =
-  echo "Adding Procedures..."
-  output.add("\n# Procs\n")
+proc addStaticProcs(output: var string, number: string, features: seq[GLProc], duplicates: var HashSet[string]) =
+  echo "Adding Static Procedures for {number}...".fmt
+  output.add("\n# OpenGL {number} static procs\n".fmt)
+  for glProc in features:
+    if duplicates.contains(glProc.name):
+      continue
+    duplicates.incl(glProc.name)
+    output.add("proc {glProc.name}*(".fmt)
+    for arg in glProc.args:
+      if not output.endsWith("("):
+        output.add(", ")
+      output.add("{arg.name}: {arg.argType}".fmt)
+    output.add("): {glProc.rVal} {{.stdcall, importc.}}\n".fmt)
+
+proc addDynamicProcs(output: var string) =
+  echo "Adding Dynamic Procedures..."
+  output.add("\n# Dynamic procs\n")
   output.add("var\n")
   for glProc in glProcs:
     output.add("  {glProc.name}*: proc(".fmt)
@@ -262,29 +276,52 @@ proc main() =
   xml.genFeatures()
 
   output.addEnums()
-  output.addProcs()
-  output.addLoader("1_0", gl1_0)
-  output.addLoader("1_1", gl1_1)
-  output.addLoader("1_2", gl1_2)
-  output.addLoader("1_3", gl1_3)
-  output.addLoader("1_4", gl1_4)
-  output.addLoader("1_5", gl1_5)
-  output.addLoader("2_0", gl2_0)
-  output.addLoader("2_1", gl2_1)
-  output.addLoader("3_0", gl3_0)
-  output.addLoader("3_1", gl3_1)
 
-  output.addLoader("3_2", gl3_2)
-  output.addLoader("3_3", gl3_3)
-  output.addLoader("4_0", gl4_0)
-  output.addLoader("4_1", gl4_1)
-  output.addLoader("4_2", gl4_2)
-  output.addLoader("4_3", gl4_3)
-  output.addLoader("4_4", gl4_4)
-  output.addLoader("4_5", gl4_5)
-  output.addLoader("4_6", gl4_6)
-  output.add("\n" & glInit)
-  output.addExtensions(xml)
+  output.add("\nwhen defined(glStaticProcs) or defined(emscripten):\n")
+  var staticOutput = ""
+  var duplicates: HashSet[string]
+  staticOutput.addStaticProcs("1_0", gl1_0, duplicates)
+  staticOutput.addStaticProcs("1_1", gl1_1, duplicates)
+  staticOutput.addStaticProcs("1_2", gl1_2, duplicates)
+  staticOutput.addStaticProcs("1_3", gl1_3, duplicates)
+  staticOutput.addStaticProcs("1_4", gl1_4, duplicates)
+  staticOutput.addStaticProcs("1_5", gl1_5, duplicates)
+  staticOutput.addStaticProcs("2_0", gl2_0, duplicates)
+  staticOutput.addStaticProcs("2_1", gl2_1, duplicates)
+  staticOutput.addStaticProcs("3_0", gl3_0, duplicates)
+  staticOutput.addStaticProcs("3_1", gl3_1, duplicates)
+  staticOutput.addStaticProcs("3_2", gl3_2, duplicates)
+  staticOutput.addStaticProcs("3_3", gl3_3, duplicates)
+  staticOutput.add("proc glInit*(): bool = true")
+  staticOutput = indent(staticOutput, 2)
+  output.add(staticOutput)
+
+  output.add("\nelse:\n")
+  var dynamicOutput = ""
+  dynamicOutput.addDynamicProcs()
+  dynamicOutput.addLoader("1_0", gl1_0)
+  dynamicOutput.addLoader("1_1", gl1_1)
+  dynamicOutput.addLoader("1_2", gl1_2)
+  dynamicOutput.addLoader("1_3", gl1_3)
+  dynamicOutput.addLoader("1_4", gl1_4)
+  dynamicOutput.addLoader("1_5", gl1_5)
+  dynamicOutput.addLoader("2_0", gl2_0)
+  dynamicOutput.addLoader("2_1", gl2_1)
+  dynamicOutput.addLoader("3_0", gl3_0)
+  dynamicOutput.addLoader("3_1", gl3_1)
+  dynamicOutput.addLoader("3_2", gl3_2)
+  dynamicOutput.addLoader("3_3", gl3_3)
+  dynamicOutput.addLoader("4_0", gl4_0)
+  dynamicOutput.addLoader("4_1", gl4_1)
+  dynamicOutput.addLoader("4_2", gl4_2)
+  dynamicOutput.addLoader("4_3", gl4_3)
+  dynamicOutput.addLoader("4_4", gl4_4)
+  dynamicOutput.addLoader("4_5", gl4_5)
+  dynamicOutput.addLoader("4_6", gl4_6)
+  dynamicOutput.add("\n" & glInit)
+  dynamicOutput.addExtensions(xml)
+  dynamicOutput = indent(dynamicOutput, 2)
+  output.add(dynamicOutput)
 
   writeFile("src/opengl.nim", output)
 
