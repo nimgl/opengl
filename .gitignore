@@ -157,8 +157,12 @@ $RECYCLE.BIN/
 tests/general
 tests/tgeneral
 tests/tglfw
+tests/test
+tmp/
 tests/tmath
+tests/web/
 tests/topengl
+tools/generator
 imgui.ini
 docs/
 
